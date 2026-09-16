@@ -1,0 +1,502 @@
+[
+  {
+    "slug": "capacity-001",
+    "name": "capacity 1",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-002",
+    "name": "capacity 2",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-003",
+    "name": "capacity 3",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-004",
+    "name": "capacity 4",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-005",
+    "name": "capacity 5",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-006",
+    "name": "capacity 6",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-007",
+    "name": "capacity 7",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-008",
+    "name": "capacity 8",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-009",
+    "name": "capacity 9",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-010",
+    "name": "capacity 10",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-011",
+    "name": "capacity 11",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-012",
+    "name": "capacity 12",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-013",
+    "name": "capacity 13",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-014",
+    "name": "capacity 14",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-015",
+    "name": "capacity 15",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-016",
+    "name": "capacity 16",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-017",
+    "name": "capacity 17",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-018",
+    "name": "capacity 18",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-019",
+    "name": "capacity 19",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-020",
+    "name": "capacity 20",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-021",
+    "name": "capacity 21",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-022",
+    "name": "capacity 22",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-023",
+    "name": "capacity 23",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-024",
+    "name": "capacity 24",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-025",
+    "name": "capacity 25",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-026",
+    "name": "capacity 26",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-027",
+    "name": "capacity 27",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-028",
+    "name": "capacity 28",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-029",
+    "name": "capacity 29",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-030",
+    "name": "capacity 30",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-031",
+    "name": "capacity 31",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-032",
+    "name": "capacity 32",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-033",
+    "name": "capacity 33",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-034",
+    "name": "capacity 34",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-035",
+    "name": "capacity 35",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-036",
+    "name": "capacity 36",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-037",
+    "name": "capacity 37",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-038",
+    "name": "capacity 38",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-039",
+    "name": "capacity 39",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-040",
+    "name": "capacity 40",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-041",
+    "name": "capacity 41",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-042",
+    "name": "capacity 42",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-043",
+    "name": "capacity 43",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-044",
+    "name": "capacity 44",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-045",
+    "name": "capacity 45",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-046",
+    "name": "capacity 46",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-047",
+    "name": "capacity 47",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-048",
+    "name": "capacity 48",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-049",
+    "name": "capacity 49",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-050",
+    "name": "capacity 50",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-051",
+    "name": "capacity 51",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-052",
+    "name": "capacity 52",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-053",
+    "name": "capacity 53",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-054",
+    "name": "capacity 54",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-055",
+    "name": "capacity 55",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-056",
+    "name": "capacity 56",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-057",
+    "name": "capacity 57",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-058",
+    "name": "capacity 58",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-059",
+    "name": "capacity 59",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-060",
+    "name": "capacity 60",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-061",
+    "name": "capacity 61",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-062",
+    "name": "capacity 62",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-063",
+    "name": "capacity 63",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-064",
+    "name": "capacity 64",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-065",
+    "name": "capacity 65",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-066",
+    "name": "capacity 66",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-067",
+    "name": "capacity 67",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-068",
+    "name": "capacity 68",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-069",
+    "name": "capacity 69",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-070",
+    "name": "capacity 70",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-071",
+    "name": "capacity 71",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-072",
+    "name": "capacity 72",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-073",
+    "name": "capacity 73",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-074",
+    "name": "capacity 74",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-075",
+    "name": "capacity 75",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-076",
+    "name": "capacity 76",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-077",
+    "name": "capacity 77",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-078",
+    "name": "capacity 78",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-079",
+    "name": "capacity 79",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-080",
+    "name": "capacity 80",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-081",
+    "name": "capacity 81",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-082",
+    "name": "capacity 82",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-083",
+    "name": "capacity 83",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-084",
+    "name": "capacity 84",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-085",
+    "name": "capacity 85",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-086",
+    "name": "capacity 86",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-087",
+    "name": "capacity 87",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-088",
+    "name": "capacity 88",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-089",
+    "name": "capacity 89",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-090",
+    "name": "capacity 90",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-091",
+    "name": "capacity 91",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-092",
+    "name": "capacity 92",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-093",
+    "name": "capacity 93",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-094",
+    "name": "capacity 94",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-095",
+    "name": "capacity 95",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-096",
+    "name": "capacity 96",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-097",
+    "name": "capacity 97",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-098",
+    "name": "capacity 98",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-099",
+    "name": "capacity 99",
+    "synthetic": true
+  },
+  {
+    "slug": "capacity-100",
+    "name": "capacity 100",
+    "synthetic": true
+  }
+]
