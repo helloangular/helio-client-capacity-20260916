@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Synthetic runner work
         shell: bash
-        run: sleep 30
+        run: sleep 60
   production:
     needs: test
     runs-on:
@@ -47,7 +47,7 @@ jobs:
     steps:
       - name: Synthetic runner work
         shell: bash
-        run: sleep 30
+        run: sleep 60
       - name: Record synthetic deployment evidence
         shell: bash
         env:
