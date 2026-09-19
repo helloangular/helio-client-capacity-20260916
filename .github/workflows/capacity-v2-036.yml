@@ -1,98 +1,159 @@
-{
-  "name": "capacity-v2-036",
-  "run-name": "${{ inputs.helio_execution_id }}",
-  "on": {
-    "workflow_dispatch": {
-      "inputs": {
-        "helio_execution_id": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "helio_release_id": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "helio_stage_id": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "release_version": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "workflow_revision": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "environment": {
-          "type": "string",
-          "required": false,
-          "default": "capacity-v2-036-production"
-        },
-        "deployment_only": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "artifact_uri": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "artifact_digest": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        }
-      }
-    }
-  },
-  "permissions": {
-    "contents": "write",
-    "deployments": "write"
-  },
-  "concurrency": {
-    "group": "capacity-v2-036-release",
-    "cancel-in-progress": false
-  },
-  "jobs": {
-    "production": {
-      "runs-on": [
-        "self-hosted",
-        "helio-w1-vps"
-      ],
-      "timeout-minutes": 10,
-      "environment": "capacity-v2-036-production",
-      "steps": [
-        {
-          "name": "Synthetic runner work",
-          "shell": "bash",
-          "run": "sleep 60"
-        },
-        {
-          "name": "Deploy or restore exact synthetic artifact",
-          "shell": "bash",
-          "env": {
-            "HELIO_EXECUTION_ID": "${{ inputs.helio_execution_id }}",
-            "HELIO_RELEASE_ID": "${{ inputs.helio_release_id }}",
-            "HELIO_STAGE_ID": "${{ inputs.helio_stage_id }}",
-            "RELEASE_VERSION": "${{ inputs.release_version }}",
-            "WORKFLOW_REVISION": "${{ inputs.workflow_revision }}",
-            "ENVIRONMENT": "${{ inputs.environment }}",
-            "DEPLOYMENT_ONLY": "${{ inputs.deployment_only }}",
-            "ARTIFACT_URI": "${{ inputs.artifact_uri }}",
-            "ARTIFACT_DIGEST": "${{ inputs.artifact_digest }}",
-            "GH_TOKEN": "${{ github.token }}",
-            "STATE_BRANCH": "w1-ownership-smoke-20260919"
-          },
-          "run": "set -euo pipefail\npython3 - <<'PY'\n\"\"\"Synthetic branch-only artifact deployment. Never writes the capacity main branch.\"\"\"\nimport base64\nimport hashlib\nimport json\nimport os\nimport re\nimport urllib.error\nimport urllib.parse\nimport urllib.request\nimport uuid\n\nBRANCH = 'w1-ownership-smoke-20260919'\nPREFIX = '.w1-ownership/'\n\ndef digest(raw):\n    return 'sha256:' + hashlib.sha256(raw).hexdigest()\n\ndef select_artifact(deployment_only, expected, read, built):\n    assert deployment_only in ('', 'false', 'true')\n    if deployment_only != 'true':\n        return built\n    assert re.fullmatch('sha256:[0-9a-f]{64}', expected)\n    raw = read(PREFIX + 'artifacts/' + expected[7:] + '.json')\n    assert isinstance(raw, bytes) and digest(raw) == expected, 'Rollback requires the original immutable artifact'\n    return raw\n\ndef main():\n    assert os.environ['GITHUB_REPOSITORY'] == 'helloangular/helio-client-capacity-20260916'\n    assert os.environ['STATE_BRANCH'] == BRANCH\n    assert os.environ['WORKFLOW_REVISION'] == os.environ['GITHUB_SHA']\n    uuid.UUID(os.environ['HELIO_RELEASE_ID'])\n    assert re.fullmatch('[A-Za-z0-9._:-]{1,200}', os.environ['HELIO_EXECUTION_ID'])\n    base = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY']\n    def api(path, body=None, method=None):\n        request = urllib.request.Request(base + path, data=None if body is None else json.dumps(body).encode(),\n            method=method, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],\n             'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'})\n        with urllib.request.urlopen(request, timeout=30) as response:\n            return json.load(response)\n    def existing(path):\n        try:return api('/contents/' + path + '?ref=' + urllib.parse.quote(BRANCH, safe=''))\n        except urllib.error.HTTPError as error:\n            if error.code == 404:return None\n            raise\n    def read(path):\n        value = existing(path)\n        assert value and value['encoding'] == 'base64'\n        return base64.b64decode(value['content'])\n    def write(path, raw, immutable=False):\n        value = existing(path)\n        if value:\n            before = base64.b64decode(value['content'])\n            if before == raw:return\n            assert not immutable, 'Never replace an existing digest-addressed artifact'\n        body = {'branch': BRANCH, 'message': 'W1 synthetic serving state', 'content': base64.b64encode(raw).decode()}\n        if value:body['sha'] = value['sha']\n        api('/contents/' + path, body, 'PUT')\n    built = json.dumps({'application': 'capacity-v2-036', 'version': os.environ['RELEASE_VERSION'],\n                        'commit': os.environ['GITHUB_SHA']}, sort_keys=True).encode()\n    artifact = select_artifact(os.environ.get('DEPLOYMENT_ONLY', ''), os.environ.get('ARTIFACT_DIGEST', ''), read, built)\n    sha = digest(artifact)\n    uri = 'urn:helio-capacity:capacity-v2-036@' + sha\n    if os.environ.get('ARTIFACT_URI'):assert os.environ['ARTIFACT_URI'] == uri\n    # This fixture locates immutable artifacts by the approved digest. Helio's\n    # rollback dispatch contract supplies that digest; URI input is optional.\n    write(PREFIX + 'artifacts/' + sha[7:] + '.json', artifact, immutable=True)\n    write(PREFIX + 'serving.json', json.dumps({'artifact_digest': sha}).encode())\n    write(PREFIX + 'health.json', b'{\"healthy\":true}')\n    payload = {'schema_version': 1, 'helio_execution_id': os.environ['HELIO_EXECUTION_ID'],\n               'release_id': os.environ['HELIO_RELEASE_ID'], 'artifact_digest': sha, 'artifact_uri': uri,\n               'rollback_workflow_id': '.github/workflows/capacity-v2-036.yml',\n               'workflow_revision': os.environ['WORKFLOW_REVISION']}\n    deployment = api('/deployments', {'ref': os.environ['GITHUB_SHA'], 'auto_merge': False,\n        'required_contexts': [], 'environment': 'capacity-v2-036-production',\n        'task': 'helio-rollback-release' if os.environ.get('DEPLOYMENT_ONLY') == 'true' else 'helio-forward-release',\n        'payload': payload}, 'POST')\n    api('/deployments/%s/statuses' % deployment['id'], {'state': 'success',\n        'description': 'Synthetic branch artifact restored/copied and digest verified; no customer deployment'}, 'POST')\n\nif __name__ == '__main__':main()\n\nPY\n"
-        }
-      ]
-    }
-  }
-}
+name: capacity-v2-036
+run-name: "${{ inputs.helio_execution_id }}"
+'on':
+  workflow_dispatch:
+    inputs:
+      helio_execution_id:
+        type: string
+        required: false
+        default: ""
+      helio_release_id:
+        type: string
+        required: false
+        default: ""
+      helio_stage_id:
+        type: string
+        required: false
+        default: ""
+      release_version:
+        type: string
+        required: false
+        default: ""
+      workflow_revision:
+        type: string
+        required: false
+        default: ""
+      environment:
+        type: string
+        required: false
+        default: capacity-v2-036-production
+      deployment_only:
+        type: string
+        required: false
+        default: ""
+      artifact_uri:
+        type: string
+        required: false
+        default: ""
+      artifact_digest:
+        type: string
+        required: false
+        default: ""
+permissions:
+  contents: write
+  deployments: write
+concurrency:
+  group: capacity-v2-036-release
+  cancel-in-progress: false
+jobs:
+  production:
+    runs-on:
+      - self-hosted
+      - helio-w1-vps
+    timeout-minutes: 10
+    environment: capacity-v2-036-production
+    steps:
+      -
+        name: "Synthetic runner work"
+        shell: bash
+        run: "sleep 60"
+      -
+        name: "Deploy or restore exact synthetic artifact"
+        shell: bash
+        env:
+          HELIO_EXECUTION_ID: "${{ inputs.helio_execution_id }}"
+          HELIO_RELEASE_ID: "${{ inputs.helio_release_id }}"
+          HELIO_STAGE_ID: "${{ inputs.helio_stage_id }}"
+          RELEASE_VERSION: "${{ inputs.release_version }}"
+          WORKFLOW_REVISION: "${{ inputs.workflow_revision }}"
+          ENVIRONMENT: "${{ inputs.environment }}"
+          DEPLOYMENT_ONLY: "${{ inputs.deployment_only }}"
+          ARTIFACT_URI: "${{ inputs.artifact_uri }}"
+          ARTIFACT_DIGEST: "${{ inputs.artifact_digest }}"
+          GH_TOKEN: "${{ github.token }}"
+          STATE_BRANCH: w1-ownership-smoke-20260919
+        run: |-
+          set -euo pipefail
+          python3 - <<'PY'
+          """Synthetic branch-only artifact deployment. Never writes the capacity main branch."""
+          import base64
+          import hashlib
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          import uuid
+          
+          BRANCH = 'w1-ownership-smoke-20260919'
+          PREFIX = '.w1-ownership/'
+          
+          def digest(raw):
+              return 'sha256:' + hashlib.sha256(raw).hexdigest()
+          
+          def select_artifact(deployment_only, expected, read, built):
+              assert deployment_only in ('', 'false', 'true')
+              if deployment_only != 'true':
+                  return built
+              assert re.fullmatch('sha256:[0-9a-f]{64}', expected)
+              raw = read(PREFIX + 'artifacts/' + expected[7:] + '.json')
+              assert isinstance(raw, bytes) and digest(raw) == expected, 'Rollback requires the original immutable artifact'
+              return raw
+          
+          def main():
+              assert os.environ['GITHUB_REPOSITORY'] == 'helloangular/helio-client-capacity-20260916'
+              assert os.environ['STATE_BRANCH'] == BRANCH
+              assert os.environ['WORKFLOW_REVISION'] == os.environ['GITHUB_SHA']
+              uuid.UUID(os.environ['HELIO_RELEASE_ID'])
+              assert re.fullmatch('[A-Za-z0-9._:-]{1,200}', os.environ['HELIO_EXECUTION_ID'])
+              base = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY']
+              def api(path, body=None, method=None):
+                  request = urllib.request.Request(base + path, data=None if body is None else json.dumps(body).encode(),
+                      method=method, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                       'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'})
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      return json.load(response)
+              def existing(path):
+                  try:return api('/contents/' + path + '?ref=' + urllib.parse.quote(BRANCH, safe=''))
+                  except urllib.error.HTTPError as error:
+                      if error.code == 404:return None
+                      raise
+              def read(path):
+                  value = existing(path)
+                  assert value and value['encoding'] == 'base64'
+                  return base64.b64decode(value['content'])
+              def write(path, raw, immutable=False):
+                  value = existing(path)
+                  if value:
+                      before = base64.b64decode(value['content'])
+                      if before == raw:return
+                      assert not immutable, 'Never replace an existing digest-addressed artifact'
+                  body = {'branch': BRANCH, 'message': 'W1 synthetic serving state', 'content': base64.b64encode(raw).decode()}
+                  if value:body['sha'] = value['sha']
+                  api('/contents/' + path, body, 'PUT')
+              built = json.dumps({'application': 'capacity-v2-036', 'version': os.environ['RELEASE_VERSION'],
+                                  'commit': os.environ['GITHUB_SHA']}, sort_keys=True).encode()
+              artifact = select_artifact(os.environ.get('DEPLOYMENT_ONLY', ''), os.environ.get('ARTIFACT_DIGEST', ''), read, built)
+              sha = digest(artifact)
+              uri = 'urn:helio-capacity:capacity-v2-036@' + sha
+              if os.environ.get('ARTIFACT_URI'):assert os.environ['ARTIFACT_URI'] == uri
+              # This fixture locates immutable artifacts by the approved digest. Helio's
+              # rollback dispatch contract supplies that digest; URI input is optional.
+              write(PREFIX + 'artifacts/' + sha[7:] + '.json', artifact, immutable=True)
+              write(PREFIX + 'serving.json', json.dumps({'artifact_digest': sha}).encode())
+              write(PREFIX + 'health.json', b'{"healthy":true}')
+              payload = {'schema_version': 1, 'helio_execution_id': os.environ['HELIO_EXECUTION_ID'],
+                         'release_id': os.environ['HELIO_RELEASE_ID'], 'artifact_digest': sha, 'artifact_uri': uri,
+                         'rollback_workflow_id': '.github/workflows/capacity-v2-036.yml',
+                         'workflow_revision': os.environ['WORKFLOW_REVISION']}
+              deployment = api('/deployments', {'ref': os.environ['GITHUB_SHA'], 'auto_merge': False,
+                  'required_contexts': [], 'environment': 'capacity-v2-036-production',
+                  'task': 'helio-rollback-release' if os.environ.get('DEPLOYMENT_ONLY') == 'true' else 'helio-forward-release',
+                  'payload': payload}, 'POST')
+              api('/deployments/%s/statuses' % deployment['id'], {'state': 'success',
+                  'description': 'Synthetic branch artifact restored/copied and digest verified; no customer deployment'}, 'POST')
+          
+          if __name__ == '__main__':main()
+          
+          PY
