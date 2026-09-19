@@ -85,13 +85,13 @@ jobs:
           import urllib.parse
           import urllib.request
           import uuid
-          
+
           BRANCH = 'w1-ownership-smoke-20260919'
           PREFIX = '.w1-ownership/'
-          
+
           def digest(raw):
               return 'sha256:' + hashlib.sha256(raw).hexdigest()
-          
+
           def select_artifact(deployment_only, expected, read, built):
               assert deployment_only in ('', 'false', 'true')
               if deployment_only != 'true':
@@ -100,7 +100,7 @@ jobs:
               raw = read(PREFIX + 'artifacts/' + expected[7:] + '.json')
               assert isinstance(raw, bytes) and digest(raw) == expected, 'Rollback requires the original immutable artifact'
               return raw
-          
+
           def main():
               assert os.environ['GITHUB_REPOSITORY'] == 'helloangular/helio-client-capacity-20260916'
               assert os.environ['STATE_BRANCH'] == BRANCH
@@ -153,7 +153,7 @@ jobs:
                   'payload': payload}, 'POST')
               api('/deployments/%s/statuses' % deployment['id'], {'state': 'success',
                   'description': 'Synthetic branch artifact restored/copied and digest verified; no customer deployment'}, 'POST')
-          
+
           if __name__ == '__main__':main()
-          
+
           PY
