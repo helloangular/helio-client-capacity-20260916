@@ -1,0 +1,25 @@
+# Disposable provider-behavior probe. No Helio release, deployment or secrets.
+name: Helio C07 provider cancellation race probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  race:
+    if: always()
+    runs-on: [self-hosted, Linux, helio-w1-vps]
+    timeout-minutes: 3
+    steps:
+      - name: Hold while cancel is accepted
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'C07_PROVIDER_HOLD_READY'
+          sleep 35
+      - name: Finish after cancellation
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'C07_PROVIDER_FINISH'
