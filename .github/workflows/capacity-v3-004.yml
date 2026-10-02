@@ -1,6 +1,11 @@
 name: capacity-v3-004
 run-name: ${{ inputs.helio_execution_id }}
 'on':
+  # TC-172 fixture: a push on this branch is adopted by Helio; its production
+  # deployment job is skipped, so the adopted stage is refused at completion.
+  push:
+    branches:
+      - tc172-fixture
   workflow_dispatch:
     inputs:
       helio_execution_id:
@@ -41,6 +46,7 @@ jobs:
         run: sleep 60
   production:
     needs: test
+    if: github.event_name == 'workflow_dispatch'
     runs-on:
       - self-hosted
       - helio-w1-vps
