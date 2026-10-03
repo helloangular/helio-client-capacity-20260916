@@ -74,5 +74,45 @@ jobs:
           payload = {"schema_version": 1, "helio_execution_id": os.environ["HELIO_EXECUTION_ID"], "release_id": os.environ["HELIO_RELEASE_ID"], "artifact_digest": digest, "artifact_uri": "urn:helio-capacity:" + os.environ["APP_SLUG"] + "@" + digest, "rollback_workflow_id": ".github/workflows/" + os.environ["APP_SLUG"] + ".yml", "workflow_revision": os.environ["WORKFLOW_REVISION"]}
           pathlib.Path("deployment-evidence.json").write_text(json.dumps({"ref": os.environ["GITHUB_SHA"], "auto_merge": False, "required_contexts": [], "environment": os.environ["TARGET_ENVIRONMENT"], "task": "helio-forward-release", "payload": payload}))
           PY
-          deployment_id="$(gh api --method POST "repos/$GITHUB_REPOSITORY/deployments" --input deployment-evidence.json --jq .id)"
-          gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$deployment_id/statuses" -f state=success -f description="Synthetic capacity artifact copied and digest verified; no application deployment" > /dev/null
+          python3 - <<'PY'
+          import json, os, subprocess, time
+          repo, env, sha = os.environ["GITHUB_REPOSITORY"], os.environ["TARGET_ENVIRONMENT"], os.environ["GITHUB_SHA"]
+          execution = os.environ["HELIO_EXECUTION_ID"]
+          def gh(*args):
+              r = subprocess.run(["gh", "api", *args], capture_output=True, text=True)
+              if r.returncode != 0:
+                  raise RuntimeError((r.stderr or r.stdout).strip()[:300] or "gh exit " + str(r.returncode))
+              return json.loads(r.stdout) if r.stdout.strip() else None
+          def existing_deployment():
+              for d in gh(f"repos/{repo}/deployments?environment={env}&sha={sha}&per_page=100") or []:
+                  if (d.get("payload") or {}).get("helio_execution_id") == execution:
+                      return d["id"]
+          def has_success(deployment):
+              return any(s.get("state") == "success" for s in gh(f"repos/{repo}/deployments/{deployment}/statuses?per_page=100") or [])
+          def retried(label, step, attempts=6):
+              for attempt in range(1, attempts + 1):
+                  try:
+                      value = step()
+                      if value:
+                          return value
+                      print(f"{label}: attempt {attempt} returned nothing usable")
+                  except Exception as error:
+                      print(f"{label}: attempt {attempt} failed: {error}")
+                  if attempt < attempts:
+                      time.sleep(min(2 ** attempt, 30))
+              raise SystemExit(f"{label}: no result after {attempts} attempts")
+          def create():
+              found = existing_deployment()
+              if found:
+                  return found
+              created = gh("--method", "POST", f"repos/{repo}/deployments", "--input", "deployment-evidence.json")
+              return (created or {}).get("id")
+          deployment = retried("create deployment", create)
+          def succeed():
+              if not has_success(deployment):
+                  gh("--method", "POST", f"repos/{repo}/deployments/{deployment}/statuses", "-f", "state=success",
+                     "-f", "description=Synthetic capacity artifact copied and digest verified; no application deployment")
+              return has_success(deployment)
+          retried("record success", succeed)
+          print(f"deployment {deployment} recorded with a success status")
+          PY
