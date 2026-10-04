@@ -1,0 +1,22 @@
+name: helio-catalog-release-qa
+run-name: ${{ inputs.helio_execution_id || format('Catalog QA release {0}', github.sha) }}
+# Application caller for the VPS catalog QA lane. Calls the central template by its full name.
+on:
+  workflow_dispatch:
+    inputs:
+      helio_execution_id:
+        type: string
+        required: false
+        default: ''
+      helio_target_environment:
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  deploy:
+    uses: helloangular/helio-client-capacity-20260916/.github/workflows/helio-catalog-deploy-qa.yml@main
+    with:
+      helio_execution_id: ${{ inputs.helio_execution_id || '' }}
+      helio_target_environment: ${{ inputs.helio_target_environment || '' }}
