@@ -37,7 +37,11 @@ jobs:
     steps:
       - name: Synthetic runner work
         shell: bash
-        run: sleep 30
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |-
+          if [[ "$RELEASE_VERSION" == *-failjob-* && "$GITHUB_RUN_ATTEMPT" == "1" ]]; then echo "Synthetic failure on the first attempt (NFR test 4)"; exit 1; fi
+          sleep 30
   production:
     needs: test
     runs-on:
