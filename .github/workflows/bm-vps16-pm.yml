@@ -56,7 +56,7 @@ jobs:
     if: ${{ always() && (needs.build.result == 'success' || (inputs.deployment_only == 'true' && needs.build.result == 'skipped')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: ${{ inputs.environment }}
+    environment: capacity-v3-097-production
     steps:
       - name: Install the artifact and record deployment evidence
         shell: bash
@@ -69,7 +69,7 @@ jobs:
           HELIO_RELEASE_ID: ${{ inputs.helio_release_id }}
           WORKFLOW_REVISION: ${{ inputs.workflow_revision }}
           RELEASE_VERSION: ${{ inputs.release_version }}
-          TARGET: ${{ inputs.environment }}
+          TARGET: capacity-v3-097-production
         run: |
           set -euo pipefail
           case "$RELEASE_VERSION" in *-deployfail*) echo "variant -deployfail: the deployment fails"; exit 1 ;; esac
