@@ -3,7 +3,7 @@
 # fx stream's bm-fx-pm.yml: build -> production (records one GitHub deployment carrying the managed evidence contract:
 # digest, URI, rollback workflow, workflow revision) -> verify. A rollback run (deployment_only=true) skips the build and
 # re-installs the pinned artifact_digest. Variants by tokens in release_version: -tailfail (verify fails after the
-# production deployment), -tailsleep (verify sleeps 10 min), -slow (build sleeps 90 s), -deployfail (production job fails).
+# production deployment), -tailsleep (verify sleeps 10 min), -slow (build sleeps 90 s), -deployfail (production job fails), -timeout (build exceeds its 1-minute timeout-minutes).
 name: bm-vps16-pm-096
 run-name: ${{ inputs.helio_execution_id || github.run_id }}
 
@@ -30,7 +30,7 @@ jobs:
   build:
     if: ${{ inputs.deployment_only != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: ${{ contains(inputs.release_version, '-timeout') && 1 || 10 }}
     outputs:
       artifact_digest: ${{ steps.artifact.outputs.digest }}
     steps:
@@ -41,6 +41,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           set -euo pipefail
+          case "$RELEASE_VERSION" in *-timeout*) echo "variant -timeout: exceeds the job's 1-minute timeout"; sleep 150 ;; esac
           case "$RELEASE_VERSION" in *-slow*) sleep 90 ;; esac
           python3 - <<'PY'
           import hashlib, json, os
