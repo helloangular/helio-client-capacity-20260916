@@ -1,0 +1,39 @@
+# BlueMatrix VPS re-test fixture (17 Oct 2026, BM-BKO-28): a forward release of ANOTHER application (lane capacity-v3-097)
+# whose plan binds the same physical target as lane 096 (repository environment capacity-v3-096-production). Its first job
+# waits at that environment (Helio's reviewer gate, never signed by the test), so the release is started, not terminal and
+# can still deploy there: the backout target's holder. GitHub-hosted runners; nothing is deployed.
+name: bm-vps16-twin-097
+run-name: ${{ inputs.helio_execution_id || github.run_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      helio_execution_id: { type: string, required: false, default: '' }
+      helio_release_id: { type: string, required: false, default: '' }
+      workflow_revision: { type: string, required: false, default: '' }
+      release_version: { type: string, required: false, default: '' }
+      environment: { type: string, required: false, default: capacity-v3-097-production }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bm-vps16-twin-097-${{ inputs.helio_execution_id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  shared-target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: capacity-v3-096-production
+    steps:
+      - name: Hold the shared target
+        run: echo "would deploy to capacity-v3-096-production"
+  own:
+    needs: shared-target
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: capacity-v3-097-production
+    steps:
+      - name: Own environment
+        run: echo "own environment"
