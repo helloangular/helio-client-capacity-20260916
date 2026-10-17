@@ -2,6 +2,8 @@ name: helio-catalog-deploy-qa
 # Synthetic Environment Catalog template for the VPS QA lane (manual QA TC-116, TC-137–TC-146).
 # Shape required by Helio (env_catalog/template.clj): one matrix job per stage reading
 # HELIO_ENVIRONMENTS, single-environment targeting for redeploy/rollback. No real deployment.
+# QA failure variant (17 Oct 2026, TC-254): a commit carrying .helio-qa/catalog-fail/<environment> fails that
+# environment's job (the switch step below); every other commit deploys as before.
 on:
   workflow_call:
     inputs:
@@ -30,6 +32,22 @@ jobs:
       group: helio-catalog-qa-${{ matrix.environment }}
       cancel-in-progress: false
     steps:
+      - name: QA fixture failure switch
+        # 17 Oct 2026 (client QA guide TC-254): fails this environment's job when the commit being
+        # deployed carries .helio-qa/catalog-fail/<environment>. No marker (or the API unreadable): no effect.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          set -uo pipefail
+          code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/contents/.helio-qa/catalog-fail/$TARGET_ENVIRONMENT?ref=$GITHUB_SHA")"
+          if [ "$code" = "200" ]; then
+            echo "QA fixture: commit $GITHUB_SHA marks $TARGET_ENVIRONMENT to fail; this environment's deployment fails."
+            exit 1
+          fi
+          echo "QA fixture failure switch: not marked (HTTP $code)."
       - name: Synthetic deployment
         shell: bash
         run: |
@@ -50,6 +68,22 @@ jobs:
       group: helio-catalog-qa-${{ matrix.environment }}
       cancel-in-progress: false
     steps:
+      - name: QA fixture failure switch
+        # 17 Oct 2026 (client QA guide TC-254): fails this environment's job when the commit being
+        # deployed carries .helio-qa/catalog-fail/<environment>. No marker (or the API unreadable): no effect.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          set -uo pipefail
+          code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/contents/.helio-qa/catalog-fail/$TARGET_ENVIRONMENT?ref=$GITHUB_SHA")"
+          if [ "$code" = "200" ]; then
+            echo "QA fixture: commit $GITHUB_SHA marks $TARGET_ENVIRONMENT to fail; this environment's deployment fails."
+            exit 1
+          fi
+          echo "QA fixture failure switch: not marked (HTTP $code)."
       - name: Synthetic deployment
         shell: bash
         run: |
@@ -70,6 +104,22 @@ jobs:
       group: helio-catalog-qa-${{ matrix.environment }}
       cancel-in-progress: false
     steps:
+      - name: QA fixture failure switch
+        # 17 Oct 2026 (client QA guide TC-254): fails this environment's job when the commit being
+        # deployed carries .helio-qa/catalog-fail/<environment>. No marker (or the API unreadable): no effect.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          set -uo pipefail
+          code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/contents/.helio-qa/catalog-fail/$TARGET_ENVIRONMENT?ref=$GITHUB_SHA")"
+          if [ "$code" = "200" ]; then
+            echo "QA fixture: commit $GITHUB_SHA marks $TARGET_ENVIRONMENT to fail; this environment's deployment fails."
+            exit 1
+          fi
+          echo "QA fixture failure switch: not marked (HTTP $code)."
       - name: Synthetic deployment
         shell: bash
         run: |

@@ -1,0 +1,2 @@
+QA fixture marker (17 Oct 2026, client QA guide TC-254): the catalog template fails the cat-prod-east job for this commit only.
+Removed in the next commit.
