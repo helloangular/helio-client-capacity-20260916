@@ -74,6 +74,7 @@ jobs:
           set -euo pipefail
           case "$RELEASE_VERSION" in *-deployfail*) echo "variant -deployfail: the deployment fails"; exit 1 ;; esac
           if [ "$DEPLOYMENT_ONLY" = "true" ]; then case "$RELEASE_VERSION" in *-rbfail*) echo "variant -rbfail: the rollback deployment fails"; exit 1 ;; esac; fi
+          if [ "$DEPLOYMENT_ONLY" = "true" ]; then case "$RELEASE_VERSION" in *-rbslow*) echo "variant -rbslow: the rollback deployment runs 6 minutes"; sleep 360 ;; esac; fi
           python3 - <<'PY'
           import json, os, re, uuid
           rollback = os.environ["DEPLOYMENT_ONLY"] == "true"
