@@ -1,0 +1,90 @@
+name: catalog-own-deploy
+# Owned catalog lane (23 Oct 2026): synthetic Environment Catalog template for the BlueMatrix
+# Environment Catalog cases. Its only callers live in helloangular/helio-catalog-own-20261023.
+# No real deployment. Two catalog stages: preprod (one environment) and production (two
+# environments, a fan-out). Shape required by Helio (env_catalog/template.clj): one matrix job per
+# stage reading HELIO_ENVIRONMENTS, with the targeted form for single-environment redeploy and rollback.
+# Switches (files in the caller's commit, read at the run's own commit):
+#   .helio-cown/catalog-fail/<environment>  that environment's job fails;
+#   .helio-cown/catalog-slow/<environment>  that environment's job runs 300 s instead of 20 s.
+on:
+  workflow_call:
+    inputs:
+      helio_execution_id:
+        type: string
+        required: false
+        default: ''
+      helio_target_environment:
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  preprod:
+    name: preprod (${{ matrix.environment }})
+    if: ${{ vars.HELIO_ENVIRONMENTS != '' && contains(fromJSON(vars.HELIO_ENVIRONMENTS).order, 'preprod') && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).preprod, inputs.helio_target_environment)) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ inputs.helio_target_environment != '' && fromJSON(format('["{0}"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).preprod }}
+    environment: ${{ matrix.environment }}
+    runs-on: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).runs_on[matrix.environment] }}
+    timeout-minutes: 15
+    concurrency:
+      group: cown-catalog-${{ matrix.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Owned catalog lane switches
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          set -uo pipefail
+          probe() { curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/contents/.helio-cown/$1/$TARGET_ENVIRONMENT?ref=$GITHUB_SHA"; }
+          if [ "$(probe catalog-fail)" = "200" ]; then
+            echo "Owned catalog lane: commit $GITHUB_SHA marks $TARGET_ENVIRONMENT to fail."
+            exit 1
+          fi
+          if [ "$(probe catalog-slow)" = "200" ]; then echo "slow=300" >> "$GITHUB_ENV"; else echo "slow=20" >> "$GITHUB_ENV"; fi
+      - name: Synthetic deployment
+        shell: bash
+        run: |
+          echo "Synthetic catalog deployment of ${GITHUB_SHA} to ${{ matrix.environment }} (stage preprod); no application is deployed."
+          sleep "${slow}"
+  production:
+    name: production (${{ matrix.environment }})
+    needs: [preprod]
+    if: ${{ !failure() && !cancelled() && vars.HELIO_ENVIRONMENTS != '' && contains(fromJSON(vars.HELIO_ENVIRONMENTS).order, 'production') && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).production, inputs.helio_target_environment)) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ inputs.helio_target_environment != '' && fromJSON(format('["{0}"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).production }}
+    environment: ${{ matrix.environment }}
+    runs-on: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).runs_on[matrix.environment] }}
+    timeout-minutes: 15
+    concurrency:
+      group: cown-catalog-${{ matrix.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Owned catalog lane switches
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          set -uo pipefail
+          probe() { curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/contents/.helio-cown/$1/$TARGET_ENVIRONMENT?ref=$GITHUB_SHA"; }
+          if [ "$(probe catalog-fail)" = "200" ]; then
+            echo "Owned catalog lane: commit $GITHUB_SHA marks $TARGET_ENVIRONMENT to fail."
+            exit 1
+          fi
+          if [ "$(probe catalog-slow)" = "200" ]; then echo "slow=300" >> "$GITHUB_ENV"; else echo "slow=20" >> "$GITHUB_ENV"; fi
+      - name: Synthetic deployment
+        shell: bash
+        run: |
+          echo "Synthetic catalog deployment of ${GITHUB_SHA} to ${{ matrix.environment }} (stage production); no application is deployed."
+          sleep "${slow}"
