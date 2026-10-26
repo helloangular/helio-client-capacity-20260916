@@ -1,0 +1,245 @@
+name: demo-fanout-deploy
+# Helio internal demo (26 Oct 2026): Environment Catalog template for helloangular/helio-demo-fanout-20261026.
+# Fake work only: every job sleeps and prints log lines; nothing is deployed anywhere.
+#
+#   build ─┬─ unit-tests ─┐
+#          ├─ sast ───────┼─ publish ─ qa (1 env) ─ preprod (3 envs in parallel) ─ smoke ─ production (2 envs in parallel) ─ verify
+#          └─ sca ────────┘
+#
+# The build makes one small deterministic WAR-like zip and its sha256; every deploy job downloads that same
+# artifact, checks it against the build's checksum file and prints the sha256 ("same build everywhere").
+# Catalog jobs follow Helio's shape (env_catalog/template.clj): one matrix job per stage reading
+# HELIO_ENVIRONMENTS, targeted form plus guard so one environment can be redeployed or rolled back alone.
+on:
+  workflow_call:
+    inputs:
+      helio_execution_id:
+        type: string
+        required: false
+        default: ''
+      helio_target_environment:
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(cat VERSION 2>/dev/null || echo 0.0.0)"
+          echo "[build] helio-demo-app ${VERSION} at commit ${GITHUB_SHA}"
+          echo "[build] resolving dependencies (spring-core 6.1.14, jackson-databind 2.17.2, slf4j-api 2.0.16)"
+          sleep 6
+          echo "[build] compiling 42 sources to target/classes"
+          sleep 6
+          mkdir -p dist
+          python3 - "$VERSION" <<'PY'
+          import sys, zipfile, pathlib
+          version = sys.argv[1]
+          out = pathlib.Path("dist/helio-demo-app.war")
+          files = sorted(p for p in pathlib.Path("app").rglob("*") if p.is_file())
+          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+              # Fixed timestamps and order: the same commit always gives the same bytes.
+              for p in files:
+                  info = zipfile.ZipInfo(str(p.relative_to("app")), date_time=(2026, 10, 26, 0, 0, 0))
+                  info.external_attr = 0o644 << 16
+                  z.writestr(info, p.read_bytes())
+              info = zipfile.ZipInfo("META-INF/VERSION", date_time=(2026, 10, 26, 0, 0, 0))
+              z.writestr(info, version + "\n")
+          PY
+          (cd dist && sha256sum helio-demo-app.war > helio-demo-app.war.sha256)
+          echo "[build] packaged dist/helio-demo-app.war ($(stat -c %s dist/helio-demo-app.war) bytes)"
+          echo "[build] artifact sha256: $(cut -d' ' -f1 dist/helio-demo-app.war.sha256)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: helio-demo-app
+          path: dist/
+          retention-days: 7
+  unit-tests:
+    name: unit-tests
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Unit tests
+        shell: bash
+        run: |
+          echo "[unit-tests] running 318 tests in 41 classes"
+          sleep 8
+          echo "[unit-tests] PolicyEvaluatorTest ......... 27 passed"
+          echo "[unit-tests] LedgerReconcilerTest ........ 64 passed"
+          sleep 6
+          echo "[unit-tests] 318 passed, 0 failed, 0 skipped; line coverage 84.2%"
+  sast:
+    name: sast
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Static analysis
+        shell: bash
+        run: |
+          echo "[sast] scanning 42 sources with ruleset bank-java-2026.10"
+          sleep 12
+          echo "[sast] 0 critical, 0 high, 2 medium (accepted: DEMO-101, DEMO-102), 5 low"
+          echo "[sast] quality gate: PASSED"
+  sca:
+    name: sca
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: helio-demo-app
+          path: dist
+      - name: Dependency and licence scan
+        shell: bash
+        run: |
+          echo "[sca] scanning dependencies of $(cut -d' ' -f1 dist/helio-demo-app.war.sha256)"
+          sleep 10
+          echo "[sca] 37 components, 0 known critical/high CVEs, licences: Apache-2.0 (31), MIT (6)"
+          echo "[sca] SBOM written: helio-demo-app.cdx.json (CycloneDX 1.5)"
+  publish:
+    name: publish
+    needs: [unit-tests, sast, sca]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: helio-demo-app
+          path: dist
+      - name: Publish to artifact repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -c helio-demo-app.war.sha256)
+          echo "[publish] all checks green: unit-tests, sast, sca"
+          sleep 6
+          echo "[publish] uploaded helio-demo-app.war to releases/helio-demo-app (simulated)"
+          echo "[publish] artifact sha256: $(cut -d' ' -f1 dist/helio-demo-app.war.sha256)"
+  qa:
+    name: qa (${{ matrix.environment }})
+    needs: [publish]
+    if: ${{ !failure() && !cancelled() && vars.HELIO_ENVIRONMENTS != '' && contains(fromJSON(vars.HELIO_ENVIRONMENTS).order, 'qa') && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).qa, inputs.helio_target_environment)) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ inputs.helio_target_environment != '' && fromJSON(format('["{0}"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).qa }}
+    environment: ${{ matrix.environment }}
+    runs-on: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).runs_on[matrix.environment] }}
+    timeout-minutes: 15
+    concurrency:
+      group: demo-fanout-${{ matrix.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: helio-demo-app
+          path: dist
+      - name: Deploy (simulated)
+        shell: bash
+        env:
+          TARGET: ${{ matrix.environment }}
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -c helio-demo-app.war.sha256)
+          echo "[deploy] stage qa -> ${TARGET}"
+          echo "[deploy] artifact sha256: $(cut -d' ' -f1 dist/helio-demo-app.war.sha256)"
+          sleep 10
+          echo "[deploy] ${TARGET}: rolled out 2/2 instances, health check 200 OK (simulated; nothing deployed)"
+  preprod:
+    name: preprod (${{ matrix.environment }})
+    needs: [qa]
+    if: ${{ !failure() && !cancelled() && vars.HELIO_ENVIRONMENTS != '' && contains(fromJSON(vars.HELIO_ENVIRONMENTS).order, 'preprod') && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).preprod, inputs.helio_target_environment)) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ inputs.helio_target_environment != '' && fromJSON(format('["{0}"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).preprod }}
+    environment: ${{ matrix.environment }}
+    runs-on: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).runs_on[matrix.environment] }}
+    timeout-minutes: 15
+    concurrency:
+      group: demo-fanout-${{ matrix.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: helio-demo-app
+          path: dist
+      - name: Deploy (simulated)
+        shell: bash
+        env:
+          TARGET: ${{ matrix.environment }}
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -c helio-demo-app.war.sha256)
+          echo "[deploy] stage preprod -> ${TARGET}"
+          echo "[deploy] artifact sha256: $(cut -d' ' -f1 dist/helio-demo-app.war.sha256)"
+          sleep 12
+          echo "[deploy] ${TARGET}: rolled out 3/3 instances, health check 200 OK (simulated; nothing deployed)"
+  smoke:
+    name: smoke
+    needs: [preprod]
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Smoke tests across preprod
+        shell: bash
+        run: |
+          echo "[smoke] running 12 smoke checks against every preprod environment"
+          sleep 10
+          echo "[smoke] login, quote, bind, payment, statement: 12/12 passed"
+  production:
+    name: production (${{ matrix.environment }})
+    needs: [smoke]
+    if: ${{ !failure() && !cancelled() && vars.HELIO_ENVIRONMENTS != '' && contains(fromJSON(vars.HELIO_ENVIRONMENTS).order, 'production') && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).production, inputs.helio_target_environment)) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ inputs.helio_target_environment != '' && fromJSON(format('["{0}"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).production }}
+    environment: ${{ matrix.environment }}
+    runs-on: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).runs_on[matrix.environment] }}
+    timeout-minutes: 15
+    concurrency:
+      group: demo-fanout-${{ matrix.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: helio-demo-app
+          path: dist
+      - name: Deploy (simulated)
+        shell: bash
+        env:
+          TARGET: ${{ matrix.environment }}
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -c helio-demo-app.war.sha256)
+          echo "[deploy] stage production -> ${TARGET}"
+          echo "[deploy] artifact sha256: $(cut -d' ' -f1 dist/helio-demo-app.war.sha256)"
+          sleep 15
+          echo "[deploy] ${TARGET}: blue/green switch complete, health check 200 OK (simulated; nothing deployed)"
+  verify:
+    name: verify
+    needs: [production]
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Post-release verification
+        shell: bash
+        run: |
+          echo "[verify] checking production versions and error budgets"
+          sleep 10
+          echo "[verify] all production environments report the released build; error rate 0.02% (budget 0.5%)"
