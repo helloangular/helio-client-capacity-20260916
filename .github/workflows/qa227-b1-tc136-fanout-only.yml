@@ -1,0 +1,53 @@
+name: qa227-b1-tc136-fanout-only
+# qa227 B1 (28 Oct 2026), TC-136 only: a catalog-shaped template registered to show the
+# "fan-out only" badge. Never attached to any environment or pipeline;
+# it is registration evidence, not a deployment workflow. Synthetic echo only.
+on:
+  workflow_call:
+    inputs:
+      helio_execution_id:
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  preprod:
+    name: preprod (${{ matrix.environment }})
+    if: ${{ vars.HELIO_ENVIRONMENTS != '' && contains(fromJSON(vars.HELIO_ENVIRONMENTS).order, 'preprod') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).preprod }}
+    environment: ${{ matrix.environment }}
+    runs-on: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).runs_on[matrix.environment] }}
+    timeout-minutes: 15
+    concurrency:
+      group: qa227-b1-tc136-fan-${{ matrix.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Synthetic deployment
+        shell: bash
+        run: |
+          echo "Synthetic catalog deployment of ${GITHUB_SHA} to ${{ matrix.environment }} (stage preprod); no application is deployed."
+          true
+  production:
+    name: production (${{ matrix.environment }})
+    needs: [preprod]
+    if: ${{ !failure() && !cancelled() && vars.HELIO_ENVIRONMENTS != '' && contains(fromJSON(vars.HELIO_ENVIRONMENTS).order, 'production') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).production }}
+    environment: ${{ matrix.environment }}
+    runs-on: ${{ fromJSON(vars.HELIO_ENVIRONMENTS).runs_on[matrix.environment] }}
+    timeout-minutes: 15
+    concurrency:
+      group: qa227-b1-tc136-fan-${{ matrix.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Synthetic deployment
+        shell: bash
+        run: |
+          echo "Synthetic catalog deployment of ${GITHUB_SHA} to ${{ matrix.environment }} (stage production); no application is deployed."
+          true
