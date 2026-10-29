@@ -124,12 +124,12 @@
         }
       }
     },
-    "deploy_test": {
+    "deploy_qa": {
       "env": {
         "PYTHONDONTWRITEBYTECODE": "1"
       },
       "environment": "${{ matrix.environment }}",
-      "if": "${{ !cancelled() && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).test, inputs.helio_target_environment)) && (needs.build.result == 'success' || inputs.helio_target_environment != '') }}",
+      "if": "${{ !cancelled() && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).qa, inputs.helio_target_environment)) && (needs.build.result == 'success' || inputs.helio_target_environment != '') }}",
       "name": "${{ matrix.environment }}",
       "needs": [
         "build"
@@ -198,16 +198,16 @@
       "strategy": {
         "fail-fast": false,
         "matrix": {
-          "environment": "${{ inputs.helio_target_environment != '' && fromJSON(format('[\"{0}\"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).test }}"
+          "environment": "${{ inputs.helio_target_environment != '' && fromJSON(format('[\"{0}\"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).qa }}"
         }
       }
     },
-    "deploy_uat": {
+    "deploy_preprod": {
       "env": {
         "PYTHONDONTWRITEBYTECODE": "1"
       },
       "environment": "${{ matrix.environment }}",
-      "if": "${{ !cancelled() && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).uat, inputs.helio_target_environment)) && (needs.build.result == 'success' || inputs.helio_target_environment != '') }}",
+      "if": "${{ !cancelled() && (inputs.helio_target_environment == '' || contains(fromJSON(vars.HELIO_ENVIRONMENTS).preprod, inputs.helio_target_environment)) && (needs.build.result == 'success' || inputs.helio_target_environment != '') }}",
       "name": "${{ matrix.environment }}",
       "needs": [
         "build"
@@ -276,7 +276,7 @@
       "strategy": {
         "fail-fast": false,
         "matrix": {
-          "environment": "${{ inputs.helio_target_environment != '' && fromJSON(format('[\"{0}\"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).uat }}"
+          "environment": "${{ inputs.helio_target_environment != '' && fromJSON(format('[\"{0}\"]', inputs.helio_target_environment)) || fromJSON(vars.HELIO_ENVIRONMENTS).preprod }}"
         }
       }
     }
